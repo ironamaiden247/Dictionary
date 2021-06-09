@@ -1,0 +1,100 @@
+import mysql.connector
+import enchant
+import difflib
+
+
+con = mysql.connector.connect(user = "ardit700_student",
+password = "ardit700_student",
+host = "108.167.140.122",
+database = "ardit700_pm1database"
+)
+cursor = con.cursor(buffered=True)
+
+def get_word(word):
+    query_read = ("select * from Dictionary where Expression = '%s'" % word)
+    cursor.execute(query_read, word)
+    results = cursor.fetchall()
+    if results != []:
+        return results
+    else:
+        b = enchant.Broker()
+        d = b.request_dict("en_US")
+        best_words = []
+        best_ratio = 0
+        a = set(d.suggest(word))
+        for b in a:
+            tmp = difflib.SequenceMatcher(None, word, b).ratio()
+            if tmp > best_ratio:
+                best_words = [b]
+                best_ratio = tmp
+            elif tmp == best_ratio:
+                best_words.append(b)
+        print('Did you mean any one of {}?'.format(best_words))
+        user_decision = input("Press 'y' for Yes or 'n' for No: ")
+        if user_decision == 'y':
+            if len(best_words) == 1:
+                query_read = ("select * from Dictionary where Expression = '%s'" % best_words)
+                cursor.execute(query_read, word)
+                results = cursor.fetchall()
+                if results != []:
+                    return results
+                else:
+                    return 'The meaning of the word does not exist in the Thesaurus'
+            if len(best_words) > 1:
+                a = len(best_words)
+                for i in range(1, a+1):
+                    print('Press {} for {}'.format(i, best_words[i-1]))
+                user_choice = int(input('Your choice: '))
+                selected_word = best_words[user_choice - 1]
+                query_read = ("select * from Dictionary where Expression = '%s'" % selected_word)
+                cursor.execute(query_read, selected_word)
+                results = cursor.fetchall()
+                if results != []:
+                    return results
+                else:
+                    return 'The meaning of the word does not exist in the Thesaurus'
+                if user_decision == 'n':
+                    return "We cannot find the mentioned word's meaning. Thank you for using our Thesaurus service"
+
+flag = True
+
+while flag:
+
+    user_input = input('Enter a word: ')
+    output = get_word(user_input)
+    if len(output) == 1 and isinstance(output, list):
+        print("The meaning of the word '{}' is '{}': ".format(output[0][0], output[0][1]))
+    elif len(output) > 1 and isinstance(output, list):
+        a = len(output)
+        print("The meanings of the word '{}' are: ".format(output[0][0]))
+        for i in range(0,a):
+            print('{}'.format(output[i][1]))
+    else:
+        print(output)
+    user_continue = input("Do you wish to continue? 'y' for Yes and 'n' for No: ")
+    if user_continue == 'y':
+        flag = True
+    if user_continue == 'n':
+        print('Thank you for using the Thesaurus')
+        flag = False
+
+cursor.close()
+con.close()
+
+
+
+
+
+
+# for (word, meanings) in cursor:
+#     print("The word is: {} and the meaning(s): {}".format(word, meanings))
+
+
+
+
+
+
+
+
+
+
